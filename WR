@@ -1,0 +1,95 @@
+# Convert "IT" into a factor (along with all other variables)
+WR$IT <- as.factor(WR$IT)
+WR$Conf <- as.factor(WR$Conf)
+WR$Inj <- as.factor(WR$Inj)
+WR$OffSch <- as.factor(WR$OffSch)
+WR$NFLQB <- as.factor(WR$NFLQB)
+WR$Playoffs <- as.factor(WR$Playoffs)
+WR$FBA <- as.factor(WR$FBA)
+WR$HS <- as.factor(WR$HS)
+WR$KIC <- as.factor(WR$KIC)
+WR$Seasons <- as.factor(WR$Seasons)
+WR$YrsStart <- as.factor(WR$YrsStart)
+
+# Now convert the chr to numeric
+WR$Rec <- as.numeric(WR$Rec)
+WR$Yds <- as.numeric(WR$Yds)
+WR$Avg <- as.numeric(WR$Avg)
+WR$TD <- as.numeric(WR$TD)
+WR$G <- as.numeric(WR$G)
+
+
+# Now from num to factor 
+CutG <- cut(WR$G, breaks=c(0,15,20,25,30,35,40,45,50,100), labels = c("A","B","C","D","E","F","G","H","I"), right = FALSE)
+
+
+
+
+#Not Effective yet
+CutH <- cut(WR$Height, breaks=c(0,170,175,180,185,190,195,250), labels = c("A","B","C","D","E","F","G"))
+CutW <- cut(WR$Weight, breaks=c(0,160,170,180,190,200,210,220,300), labels = c("A","B","C","D","E","F","G","H"))
+CutRec <- cut(WR$Rec, breaks=c(0,50,100,150,200,250,400), labels = c("A","B","C","D","E","F"), right = FALSE)
+#Build Model to predict "IT" factor using all other variables
+
+
+glm.IT <- glm(IT ~ CutG + Seasons + YrsStart + Rec + Yds + Avg + TD + OffSch + NFLQB + Playoffs, data = WR, family = "binomial")
+
+glm.IT <- glm(IT ~ CutG + Seasons + YrsStart + Rec + Yds + Avg + TD + OffSch + NFLQB + Playoffs + HS + KIC + Height + Weight, data = WR, family = "binomial")
+
+
+
+#Predict "IT" using model
+glm.predict.IT <- predict(glm.IT, WR, type = 'response')
+head(glm.predict.IT)
+
+#Convert values bacj to "Yes" "No"
+WR$predict.IT <- ifelse(glm.predict.IT >= .5, "Yes", "No")
+head(WR$predict.IT, 90)
+
+#Determine accuracy of model
+accuracy<- mean(head(WR$predict.IT,90)== head(WR$IT,90))
+print(accuracy)
+
+# Determine r2
+ll.null <- glm.IT$null.deviance/2
+ll.proposed <- glm.IT$deviance/2
+(ll.null- ll.proposed)/ll.null
+
+
+
+
+
+
+
+
+
+
+#Now this is how you plug prospective players and find out their probabilities 
+
+newdata = data.frame(CutG=c("D"),
+                     Seasons=c(3),
+                     YrsStart=c(3),
+                     Rec=c(115),
+                     Yds=c(2190),
+                     Avg=c(19),
+                     TD=c(14),
+                     OffSch=c("Spread"),
+                     NFLQB=c("No"),
+                     Playoffs=c("Yes"),
+                     HS=c("TX"),
+                     KIC=c("No"),
+                     Height=c(193),
+                     Weight=c(193))
+
+#view data frame
+newdata
+
+#Convert to factors 
+newdata$Seasons <- as.factor(newdata$Seasons)
+newdata$YrsStart <- as.factor(newdata$YrsStart)
+
+#use model to predict value of am for all new WR
+newdata$Prospect <- predict(glm.IT, newdata, type="response")
+
+#view updated data frame
+newdata
